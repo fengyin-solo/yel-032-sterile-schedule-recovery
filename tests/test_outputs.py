@@ -60,6 +60,20 @@ def candidate_command(root):
     return ["python3", ENTRY, "--root", str(root)]
 
 
+def writable_copy(parent, name):
+    root = parent / name
+    shutil.copytree(SOURCE_ROOT, root, symlinks=True)
+    expose_candidate_path(parent)
+    root.chmod(0o777)
+    for path in root.rglob("*"):
+        if not path.is_symlink():
+            path.chmod(0o777 if path.is_dir() else 0o644)
+    lock_path = root / ".sterilization.lock"
+    if lock_path.is_file() and not lock_path.is_symlink():
+        lock_path.chmod(0o666)
+    return root
+
+
 def _input_signature(root):
     digest = hashlib.sha256()
     for relative in ("config.json", "sterilization.sqlite3"):
@@ -188,17 +202,8 @@ def test_baseline_global_objective(root):
 
 
 def test_choice_signature_breaks_equivalent_supply_tie(tmp_path):
-    """题面公开的规范决策串先比较 job、option 和 consumable 的稳定顺序。"""
-    root = tmp_path / "decision-tie"
-    shutil.copytree(SOURCE_ROOT, root, symlinks=True)
-    expose_candidate_path(tmp_path)
-    root.chmod(0o777)
-    for path in root.rglob("*"):
-        if not path.is_symlink():
-            path.chmod(0o777 if path.is_dir() else 0o644)
-    lock_path = root / ".sterilization.lock"
-    if lock_path.is_file() and not lock_path.is_symlink():
-        lock_path.chmod(0o666)
+    """题面：「方案即使完成时刻相同，只要器械包选择的 option_id 或 consumable_id 不同，也必须按上面的 choice_rows 顺序比较」"""
+    root = writable_copy(tmp_path, "decision-tie")
     (root / "config.json").write_text(
         json.dumps(
             {

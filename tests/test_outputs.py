@@ -580,6 +580,23 @@ def test_job_count_above_limit_is_rejected(root):
     assert (root / "output/machine-state.json").read_bytes() == before_state
 
 
+def test_max_jobs_lower_bound_is_accepted(root):
+    """题面：「`max_jobs` 接受 1 到 9 的整数。」"""
+    with database(root) as db:
+        db.execute("delete from jobs where job_id != 'JOB_100'")
+        db.execute("delete from job_shifts where job_id != 'JOB_100'")
+        db.execute("delete from job_supply_options where job_id != 'JOB_100'")
+        db.commit()
+    path = root / "config.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    config["max_jobs"] = 1
+    path.write_text(json.dumps(config) + "\n", encoding="utf-8")
+    result = run_task(root)
+    assert result.returncode == 0
+    schedule, _ = outputs(root)
+    assert [item["job_id"] for item in schedule["assignments"]] == ["JOB_100"]
+
+
 def test_max_jobs_above_global_limit_is_rejected(root):
     """题面：「`max_jobs` 接受 1 到 9 的整数。」"""
     path = root / "config.json"

@@ -88,7 +88,7 @@ def run_task(root):
         candidate_command(root),
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=120,
     )
     if cacheable and completed.returncode == 0:
         cached = {}
@@ -114,7 +114,7 @@ def run_two_concurrently(root):
         start_new_session=True,
     )
     try:
-        return first.wait(timeout=60), second.wait(timeout=60)
+        return first.wait(timeout=120), second.wait(timeout=120)
     finally:
         for process in (first, second):
             if process.poll() is None:

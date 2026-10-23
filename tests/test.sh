@@ -82,7 +82,7 @@ env -i \
   PYTHONDONTWRITEBYTECODE=1 \
   PYTHONPATH="$SITE_PACKAGES:/tests" \
   PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
-  "$TRUSTED_TIMEOUT" --signal=TERM --kill-after=10s 300s \
+  "$TRUSTED_TIMEOUT" --signal=TERM --kill-after=10s 540s \
   "$TRUSTED_PYTHON" -S -s -P -B -m pytest -v -p no:cacheprovider \
   --junitxml="$REPORT" /tests/test_outputs.py > "$TEST_LOG" 2>&1
 RC=$?

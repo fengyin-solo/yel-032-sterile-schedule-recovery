@@ -304,76 +304,103 @@ def compositions(length, parts):
         yield tuple(boundaries[index + 1] - boundaries[index] - 1 for index in range(parts))
 
 
-def simulate(config, jobs, machines, setup, queues, job_shifts, shifts):
-    machine_ids = sorted(machines)
-    times = [max(config["planning_start_min"], machines[machine_id][2]) for machine_id in machine_ids]
-    last_family = [machines[machine_id][1] for machine_id in machine_ids]
+def simulate(
+    planning_start,
+    jobs,
+    setup,
+    queues,
+    shift_bounds,
+    machine_ids,
+    initial_families,
+    available_times,
+    maintenance_due,
+):
+    times = [
+        max(planning_start, available)
+        for available in available_times
+    ]
+    last_family = list(initial_families)
     pointers = [0] * len(machine_ids)
-    finish_by_job = {}
+    finish_by_job = [None] * len(jobs)
+    finished_count = 0
     setup_total = [0] * len(machine_ids)
-    assignments = []
+    assignments_by_machine = [[] for _ in machine_ids]
 
-    while len(finish_by_job) < len(jobs):
-        candidates = []
+    while finished_count < len(jobs):
+        selected = None
         for machine_index, machine_id in enumerate(machine_ids):
             if pointers[machine_index] >= len(queues[machine_index]):
                 continue
-            job_id = queues[machine_index][pointers[machine_index]]
-            job = jobs[job_id]
-            predecessor = job[6]
-            if predecessor is not None and predecessor not in finish_by_job:
+            job_index = queues[machine_index][pointers[machine_index]]
+            job_id, family, duration, ready, _, _, predecessor = jobs[job_index]
+            if predecessor is not None and finish_by_job[predecessor] is None:
                 continue
-            setup_minutes = setup[(last_family[machine_index], job[1])]
-            base = max(times[machine_index], config["planning_start_min"])
-            predecessor_finish = finish_by_job.get(predecessor, config["planning_start_min"])
-            shift = shifts[job_shifts[job_id]]
-            start = max(base + setup_minutes, job[3], predecessor_finish, shift[1])
-            finish = start + job[2]
-            if finish > min(machines[machine_id][6], shift[2]):
+            setup_minutes = setup[last_family[machine_index]][family]
+            base = max(times[machine_index], planning_start)
+            predecessor_finish = (
+                planning_start
+                if predecessor is None
+                else finish_by_job[predecessor]
+            )
+            shift_begin, shift_end = shift_bounds[job_index]
+            start = max(base + setup_minutes, ready, predecessor_finish, shift_begin)
+            finish = start + duration
+            if finish > min(maintenance_due[machine_index], shift_end):
                 return None
-            candidates.append((start, machine_id, machine_index, job_id, setup_minutes, finish))
-        if not candidates:
+            candidate = (
+                start,
+                machine_id,
+                machine_index,
+                job_id,
+                setup_minutes,
+                finish,
+                job_index,
+                family,
+            )
+            if selected is None or candidate < selected:
+                selected = candidate
+        if selected is None:
             return None
-        start, machine_id, machine_index, job_id, setup_minutes, finish = min(candidates)
-        assignments.append(
-            {
-                "finish_min": finish,
-                "job_id": job_id,
-                "machine_id": machine_id,
-                "setup_min": setup_minutes,
-                "start_min": start,
-            }
+        (
+            start,
+            machine_id,
+            machine_index,
+            job_id,
+            setup_minutes,
+            finish,
+            job_index,
+            family,
+        ) = selected
+        assignments_by_machine[machine_index].append(
+            (machine_id, start, finish, job_id, setup_minutes)
         )
-        finish_by_job[job_id] = finish
+        finish_by_job[job_index] = finish
+        finished_count += 1
         times[machine_index] = finish
-        last_family[machine_index] = jobs[job_id][1]
+        last_family[machine_index] = family
         setup_total[machine_index] += setup_minutes
         pointers[machine_index] += 1
 
     weighted_tardiness = sum(
-        jobs[job_id][5] * max(0, finish - jobs[job_id][4])
-        for job_id, finish in finish_by_job.items()
+        job[5] * max(0, finish - job[4])
+        for job, finish in zip(jobs, finish_by_job)
     )
-    makespan = max(finish_by_job.values())
+    makespan = max(finish_by_job)
     setup_minutes = sum(setup_total)
     canonical = tuple(
-        (item["machine_id"], item["start_min"], item["job_id"])
-        for item in sorted(assignments, key=lambda item: (item["machine_id"], item["start_min"], item["job_id"]))
+        (machine_id, start, job_id)
+        for machine_assignments in assignments_by_machine
+        for machine_id, start, _, job_id, _ in machine_assignments
     )
-    return {
-        "assignments": sorted(assignments, key=lambda item: (item["machine_id"], item["start_min"], item["job_id"])),
-        "finish_by_job": finish_by_job,
-        "key": (weighted_tardiness, makespan, setup_minutes, canonical),
-        "last_family": last_family,
-        "machine_ids": machine_ids,
-        "objective": {
-            "makespan": makespan,
-            "setup_minutes": setup_minutes,
-            "weighted_tardiness": weighted_tardiness,
-        },
-        "setup_total": setup_total,
-        "times": times,
-    }
+    return (
+        (weighted_tardiness, makespan, setup_minutes, canonical),
+        assignments_by_machine,
+        finish_by_job,
+        last_family,
+        machine_ids,
+        times,
+        setup_total,
+    )
 
 
 def optimize_single_machine(config, jobs, machines, setup, job_shifts, shifts):
@@ -516,10 +543,95 @@ def optimize_mapping(config, jobs, machines, setup, job_shifts, shifts):
         return optimize_single_machine(
             config, jobs, machines, setup, job_shifts, shifts
         )
-    results = []
-    machine_count = len(machines)
+    best = None
+    second = None
+    machine_ids = sorted(machines)
     job_ids = sorted(jobs)
-    for order in itertools.permutations(job_ids):
+    job_index = {job_id: index for index, job_id in enumerate(job_ids)}
+    family_names = sorted(FAMILIES)
+    family_index = {
+        family: index
+        for index, family in enumerate(family_names)
+    }
+    job_data = [
+        (
+            job_id,
+            family_index[jobs[job_id][1]],
+            jobs[job_id][2],
+            jobs[job_id][3],
+            jobs[job_id][4],
+            jobs[job_id][5],
+            (
+                None
+                if jobs[job_id][6] is None
+                else job_index[jobs[job_id][6]]
+            ),
+        )
+        for job_id in job_ids
+    ]
+    shift_bounds = [
+        (
+            shifts[job_shifts[job_id]][1],
+            shifts[job_shifts[job_id]][2],
+        )
+        for job_id in job_ids
+    ]
+    setup_grid = [
+        [
+            setup[(source, target)]
+            for target in family_names
+        ]
+        for source in family_names
+    ]
+    initial_families = [
+        family_index[machines[machine_id][1]]
+        for machine_id in machine_ids
+    ]
+    available_times = [
+        machines[machine_id][2]
+        for machine_id in machine_ids
+    ]
+    maintenance_due = [
+        machines[machine_id][6]
+        for machine_id in machine_ids
+    ]
+
+    def materialize(compact):
+        key, assignments_by_machine, finish_by_job, last_family, machine_ids, times, setup_total = compact
+        weighted_tardiness, makespan, setup_minutes, _ = key
+        return {
+            "assignments": [
+                {
+                    "finish_min": finish,
+                    "job_id": job_id,
+                    "machine_id": machine_id,
+                    "setup_min": setup_minutes,
+                    "start_min": start,
+                }
+                for machine_assignments in assignments_by_machine
+                for machine_id, start, finish, job_id, setup_minutes in machine_assignments
+            ],
+            "finish_by_job": {
+                job_id: finish_by_job[index]
+                for index, job_id in enumerate(job_ids)
+            },
+            "key": key,
+            "last_family": [
+                family_names[family]
+                for family in last_family
+            ],
+            "machine_ids": machine_ids,
+            "objective": {
+                "makespan": makespan,
+                "setup_minutes": setup_minutes,
+                "weighted_tardiness": weighted_tardiness,
+            },
+            "setup_total": setup_total,
+            "times": times,
+        }
+
+    machine_count = len(machine_ids)
+    for order in itertools.permutations(range(len(job_ids))):
         for lengths in compositions(len(job_ids), machine_count):
             queues = []
             cursor = 0
@@ -527,25 +639,38 @@ def optimize_mapping(config, jobs, machines, setup, job_shifts, shifts):
                 queues.append(order[cursor:cursor + length])
                 cursor += length
             result = simulate(
-                config, jobs, machines, setup, queues, job_shifts, shifts
+                config["planning_start_min"],
+                job_data,
+                setup_grid,
+                queues,
+                shift_bounds,
+                machine_ids,
+                initial_families,
+                available_times,
+                maintenance_due,
             )
-            if result is not None:
-                results.append(result)
-    if not results:
+            if result is None:
+                continue
+            if best is None or result[0] < best[0]:
+                second = best
+                best = result
+            elif second is None or result[0] < second[0]:
+                second = result
+    if best is None:
         raise InputError("no feasible schedule")
-    results.sort(key=lambda item: item["key"])
-    best = results[0]
+    best = materialize(best)
     best["alternative_signature"] = None
     best["alternative_key"] = None
-    if len(results) > 1:
-        best["alternative_key"] = results[1]["key"]
+    if second is not None:
+        second = materialize(second)
+        best["alternative_key"] = second["key"]
         best["alternative_signature"] = [
             {
                 "job_id": item["job_id"],
                 "machine_id": item["machine_id"],
                 "start_min": item["start_min"],
             }
-            for item in results[1]["assignments"]
+            for item in second["assignments"]
         ]
     return best
 

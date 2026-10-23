@@ -22,6 +22,7 @@ RESULT_CACHE = {}
 def root(tmp_path):
     destination = tmp_path / "data"
     shutil.copytree(SOURCE_ROOT, destination, symlinks=True)
+    tmp_path.chmod(0o755)
     destination.chmod(0o777)
     for path in destination.rglob("*"):
         if path.is_symlink():
@@ -798,6 +799,9 @@ def test_nine_jobs_finish_within_public_limit(tmp_path):
     """题面：「`max_jobs` 接受 1 到 9 的整数。」与「一次排程必须在 20 秒内完成。」"""
     root = tmp_path / "large-plan"
     shutil.copytree(SOURCE_ROOT, root, symlinks=True)
+    tmp_path.chmod(0o755)
+    root.chmod(0o777)
+    (root / "output").chmod(0o777)
     (root / "config.json").write_text(
         json.dumps(
             {

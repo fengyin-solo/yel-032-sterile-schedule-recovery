@@ -594,6 +594,17 @@ def test_maintenance_before_available_is_rejected(root):
     result = run_task(root)
     assert result.returncode != 0 and (root / "output/sterilizer-schedule.json").read_bytes() == before_schedule
     assert (root / "output/machine-state.json").read_bytes() == before_state
+    with database(root) as db:
+        db.execute(
+            "update jobs set duration_min=5, ready_min=0, due_min=2000, "
+            "weight=1, predecessor=NULL"
+        )
+        db.execute(
+            "update maintenance_events set begin_min=600 where event_id='EV_ALPHA_07'"
+        )
+        db.commit()
+    boundary = run_task(root)
+    assert boundary.returncode == 0
 
 
 def test_maintenance_event_end_before_begin_is_rejected(root):

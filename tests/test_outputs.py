@@ -649,7 +649,7 @@ def test_no_maintenance_mapping_can_form_a_schedule(root):
 
 
 def test_maintenance_event_id_syntax_is_rejected(root):
-    """题面：「事件编号同样匹配 `[A-Z][A-Z0-9_-]{0,39}` 且不得重复。」"""
+    """题面：「`maintenance_events` 含 1 到 64 条对象，记录维护窗口及其表计差。事件编号同样匹配」"""
     with database(root) as db:
         db.execute(
             "update maintenance_events set event_id='lower-case' where event_id='EV_BETA_04'"

@@ -22,7 +22,28 @@ RESULT_CACHE = {}
 def root(tmp_path):
     destination = tmp_path / "data"
     shutil.copytree(SOURCE_ROOT, destination, symlinks=True)
+    destination.chmod(0o777)
+    for path in destination.rglob("*"):
+        if path.is_symlink():
+            continue
+        path.chmod(0o777 if path.is_dir() else 0o644)
     return destination
+
+
+def candidate_command(root):
+    if os.geteuid() == 0 and Path("/usr/bin/setpriv").is_file():
+        return [
+            "/usr/bin/setpriv",
+            "--reuid=65534",
+            "--regid=65534",
+            "--clear-groups",
+            "--",
+            "python3",
+            ENTRY,
+            "--root",
+            str(root),
+        ]
+    return ["python3", ENTRY, "--root", str(root)]
 
 
 def _input_signature(root):
@@ -50,7 +71,7 @@ def run_task(root):
         _copy_cached(root, RESULT_CACHE[key])
         return subprocess.CompletedProcess([], 0, "", "")
     completed = subprocess.run(
-        ["python3", ENTRY, "--root", str(root)],
+        candidate_command(root),
         capture_output=True,
         text=True,
         timeout=60,
@@ -71,11 +92,11 @@ def run_task(root):
 
 def run_two_concurrently(root):
     first = subprocess.Popen(
-        ["python3", ENTRY, "--root", str(root)],
+        candidate_command(root),
         start_new_session=True,
     )
     second = subprocess.Popen(
-        ["python3", ENTRY, "--root", str(root)],
+        candidate_command(root),
         start_new_session=True,
     )
     try:
@@ -847,7 +868,7 @@ def test_nine_jobs_finish_within_public_limit(tmp_path):
         db.commit()
     started = time.monotonic()
     result = subprocess.run(
-        ["python3", ENTRY, "--root", str(root)],
+        candidate_command(root),
         capture_output=True,
         text=True,
         timeout=25,

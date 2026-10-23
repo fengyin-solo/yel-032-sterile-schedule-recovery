@@ -709,6 +709,14 @@ def resource_plans(jobs, options, consumables):
         yield adjusted_jobs, choices, activation_fee, usage
 
 
+def canonical_decision(choice_rows, schedule_rows):
+    return json.dumps(
+        [choice_rows, schedule_rows],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
 def optimize(
     config,
     jobs,
@@ -777,13 +785,21 @@ def optimize(
             result["choices"] = choices
             result["consumable_usage"] = usage
             result["activation_fee"] = activation_fee
+            schedule_rows = sorted(
+                [
+                    [machine_id, start_min, job_id]
+                    for machine_id, start_min, _, job_id, _ in result["assignments"]
+                ]
+            )
             result["mapping_key"] = (
                 result["key"][0],
                 result["key"][1],
                 result["key"][2],
                 activation_fee,
-                resource_signature,
-                result["key"][3],
+                canonical_decision(
+                    [list(row) for row in resource_signature],
+                    schedule_rows,
+                ),
                 tuple(sorted(mapping)),
             )
             combined.append(result)
@@ -834,6 +850,18 @@ def optimize(
                 result["alternative_signature"], result["choices"]
             )
             alternative_key = result["alternative_key"]
+            alternative_choice_rows = [
+                [
+                    item["job_id"],
+                    item["option_id"],
+                    item["consumable_id"],
+                ]
+                for item in sorted(alternative_rows, key=lambda item: item["job_id"])
+            ]
+            alternative_schedule_rows = [
+                [item["machine_id"], item["start_min"], item["job_id"]]
+                for item in alternative_rows
+            ]
             alternatives.append(
                 (
                     (
@@ -841,8 +869,10 @@ def optimize(
                         alternative_key[1],
                         alternative_key[2],
                         result["activation_fee"],
-                        signature(alternative_rows),
-                        alternative_key[3],
+                        canonical_decision(
+                            alternative_choice_rows,
+                            alternative_schedule_rows,
+                        ),
                         tuple(sorted(result["mapping"])),
                     ),
                     signature(alternative_rows),

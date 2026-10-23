@@ -187,6 +187,81 @@ def test_baseline_global_objective(root):
     ]
 
 
+def test_choice_signature_breaks_equivalent_supply_tie(tmp_path):
+    """题面公开的规范决策串先比较 job、option 和 consumable 的稳定顺序。"""
+    root = tmp_path / "decision-tie"
+    shutil.copytree(SOURCE_ROOT, root, symlinks=True)
+    expose_candidate_path(tmp_path)
+    root.chmod(0o777)
+    for path in root.rglob("*"):
+        if not path.is_symlink():
+            path.chmod(0o777 if path.is_dir() else 0o644)
+    lock_path = root / ".sterilization.lock"
+    if lock_path.is_file() and not lock_path.is_symlink():
+        lock_path.chmod(0o666)
+    (root / "config.json").write_text(
+        json.dumps(
+            {
+                "planning_start_min": 600,
+                "max_jobs": 1,
+                "meter_tolerance_kj": 25,
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with sqlite3.connect(root / "sterilization.sqlite3") as db:
+        for table in (
+            "jobs",
+            "machines",
+            "maintenance_events",
+            "job_shifts",
+            "job_supply_options",
+            "consumables",
+            "shift_windows",
+        ):
+            db.execute(f"delete from {table}")
+        db.execute(
+            "insert into machines values(?,?,?,?,?)",
+            ("ONLY_MACHINE", "GLASS", 600, 100, 1090),
+        )
+        db.execute(
+            "insert into maintenance_events values(?,?,?,?)",
+            ("EV_ONLY_01", 100000, 100100, 990),
+        )
+        db.execute(
+            "insert into jobs values(?,?,?,?,?,?,?)",
+            ("JOB_100", "GLASS", 5, 600, 700, 1, None),
+        )
+        db.execute("insert into shift_windows values(?,?,?)", ("SHIFT_A", 600, 20000))
+        db.execute("insert into shift_windows values(?,?,?)", ("SHIFT_B", 20000, 40000))
+        db.execute("insert into job_shifts values(?,?)", ("JOB_100", "SHIFT_A"))
+        db.execute("insert into consumables values(?,?,?)", ("C_A", 5, 0))
+        db.execute("insert into consumables values(?,?,?)", ("C_B", 5, 0))
+        db.execute(
+            "insert into job_supply_options values(?,?,?,?,?)",
+            ("JOB_100", "OPT_B", "C_A", 1, 0),
+        )
+        db.execute(
+            "insert into job_supply_options values(?,?,?,?,?)",
+            ("JOB_100", "OPT_A", "C_A", 1, 0),
+        )
+        db.commit()
+    result = run_task(root)
+    schedule, state = outputs(root)
+    assert result.returncode == 0
+    assert schedule["objective"]["weighted_tardiness"] == 0
+    assert state["shared_resources"]["job_choices"] == [
+        {
+            "consumable_id": "C_A",
+            "job_id": "JOB_100",
+            "option_id": "OPT_A",
+            "shift_id": "SHIFT_A",
+        }
+    ]
+
+
 def test_objective_has_exact_keys(root):
     """题面：「`objective` 的键集合为：」"""
     result = run_task(root)
@@ -206,12 +281,12 @@ def test_alternative_signature_is_next_schedule(root):
     schedule, _ = outputs(root)
     assert result.returncode == 0
     assert schedule["alternative_signature"] == [
-        {"consumable_id": "C_SHARED", "job_id": "JOB_100", "machine_id": "M_ALPHA", "option_id": "OPT_SHARED", "start_min": 600},
-        {"consumable_id": "C_BASE", "job_id": "JOB_103", "machine_id": "M_ALPHA", "option_id": "OPT_BASE", "start_min": 680},
-        {"consumable_id": "C_PACK_B", "job_id": "JOB_102", "machine_id": "M_ALPHA", "option_id": "OPT_PRIVATE", "start_min": 800},
-        {"consumable_id": "C_BASE", "job_id": "JOB_105", "machine_id": "M_ALPHA", "option_id": "OPT_BASE", "start_min": 850},
-        {"consumable_id": "C_BASE", "job_id": "JOB_101", "machine_id": "M_BETA", "option_id": "OPT_BASE", "start_min": 620},
-        {"consumable_id": "C_BASE", "job_id": "JOB_106", "machine_id": "M_BETA", "option_id": "OPT_BASE", "start_min": 712},
+        {"consumable_id": "C_PACK_A", "job_id": "JOB_100", "machine_id": "M_ALPHA", "option_id": "OPT_PRIVATE", "start_min": 600},
+        {"consumable_id": "C_BASE", "job_id": "JOB_103", "machine_id": "M_ALPHA", "option_id": "OPT_BASE", "start_min": 695},
+        {"consumable_id": "C_SHARED", "job_id": "JOB_102", "machine_id": "M_ALPHA", "option_id": "OPT_SHARED", "start_min": 800},
+        {"consumable_id": "C_BASE", "job_id": "JOB_105", "machine_id": "M_ALPHA", "option_id": "OPT_BASE", "start_min": 855},
+        {"consumable_id": "C_BASE", "job_id": "JOB_106", "machine_id": "M_BETA", "option_id": "OPT_BASE", "start_min": 637},
+        {"consumable_id": "C_BASE", "job_id": "JOB_101", "machine_id": "M_BETA", "option_id": "OPT_BASE", "start_min": 706},
         {"consumable_id": "C_BASE", "job_id": "JOB_104", "machine_id": "M_BETA", "option_id": "OPT_BASE", "start_min": 800},
         {"consumable_id": "C_BASE", "job_id": "JOB_107", "machine_id": "M_BETA", "option_id": "OPT_BASE", "start_min": 882},
     ]

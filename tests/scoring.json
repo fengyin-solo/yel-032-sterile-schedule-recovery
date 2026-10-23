@@ -17,6 +17,11 @@
       "rationale": "boolean config value is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
       "weight": 0.015
     },
+    "test_outputs.py::test_choice_signature_breaks_equivalent_supply_tie": {
+      "priority": "boundary",
+      "rationale": "规范决策串必须按公开字段顺序裁决耗材方案并列，否则同一输入可能产生不同最优排程。",
+      "weight": 0.001
+    },
     "test_outputs.py::test_concurrent_runs_converge": {
       "priority": "core",
       "rationale": "concurrent runs converge；这是任务的主交付路径，失败意味着核心业务结果不可用。",
@@ -85,7 +90,7 @@
     "test_outputs.py::test_job_shift_membership_must_cover_every_job": {
       "priority": "supporting",
       "rationale": "test job shift membership must cover every job；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
-      "weight": 0.009
+      "weight": 0.008
     },
     "test_outputs.py::test_machine_state_reports_restored_event_identity": {
       "priority": "supporting",

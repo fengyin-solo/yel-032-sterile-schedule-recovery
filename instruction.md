@@ -97,11 +97,12 @@ sum(job_supply_options.units <= consumables.capacity_units)
 2. 完工时间最小：所有 finish_min 的最大值
 3. 换族准备总分钟最小：所有 setup_min 之和
 4. 耗材启用费合计最小：所有实际使用耗材的 activation_fee_microcents 之和
-5. 规范排程字符串最小：按 machine_id、start_min、job_id 排序后序列化比较
+5. 规范决策串最小。先取 `choice_rows=[[job_id,option_id,consumable_id],...]`（按 job_id 升序），再取 `schedule_rows=[[machine_id,start_min,job_id],...]`（按这三个字段依次升序），使用 `json.dumps([choice_rows,schedule_rows], ensure_ascii=false, separators=(",", ":"))` 生成 UTF-8 规范决策串，按 Unicode 码点逐字符比较，较小者优先
 6. 若前五项仍完全相同，按 machine_id 升序比较选中的 maintenance_event_id 序列，较小者优先
 ```
 
 按截止时间逐件贪心通常不是全局最优。同一个器械包早做可能让族设置阻塞另一台机器，而更小的单件迟交也可能抬高全局加权值。
+规范决策串只用于并列裁决，不写入结果文件。方案即使完成时刻相同，只要器械包选择的 option_id 或 consumable_id 不同，也必须按上面的 choice_rows 顺序比较；不得依赖数据库行序、Python 字典插入序或优化器遍历顺序。
 
 ## 输出
 

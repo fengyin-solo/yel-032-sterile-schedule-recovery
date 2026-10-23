@@ -112,6 +112,11 @@
       "rationale": "max jobs above global limit is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
       "weight": 0.015
     },
+    "test_outputs.py::test_max_jobs_lower_bound_is_accepted": {
+      "priority": "boundary",
+      "rationale": "max jobs lower boundary is accepted；这验证最小合法值能够进入核心排程路径，失败会错误拒收合法批次。",
+      "weight": 0.005
+    },
     "test_outputs.py::test_more_than_four_energy_candidates_are_rejected": {
       "priority": "boundary",
       "rationale": "more than four energy candidates are rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
@@ -185,7 +190,7 @@
     "test_outputs.py::test_shift_window_count_is_exactly_two": {
       "priority": "supporting",
       "rationale": "test shift window count is exactly two；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
-      "weight": 0.009
+      "weight": 0.004
     },
     "test_outputs.py::test_shift_window_rejects_cross_shift_overflow": {
       "priority": "core",

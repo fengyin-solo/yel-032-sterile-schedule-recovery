@@ -1,0 +1,206 @@
+{
+  "gate_tests": [
+    "test_outputs.py::test_script_creates_both_outputs",
+    "test_outputs.py::test_baseline_global_objective",
+    "test_outputs.py::test_alternative_signature_is_next_schedule",
+    "test_outputs.py::test_alternative_signature_fields_and_order",
+    "test_outputs.py::test_missing_maintenance_event_match_is_rejected",
+    "test_outputs.py::test_near_energy_candidate_is_resolved_by_schedule",
+    "test_outputs.py::test_no_maintenance_mapping_can_form_a_schedule",
+    "test_outputs.py::test_assignment_fields_and_ordering",
+    "test_outputs.py::test_machine_state_fields_and_ordering"
+  ],
+  "schema_version": 1,
+  "tests": {
+    "test_outputs.py::test_boolean_config_value_is_rejected": {
+      "priority": "boundary",
+      "rationale": "boolean config value is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_concurrent_runs_converge": {
+      "priority": "core",
+      "rationale": "concurrent runs converge；这是任务的主交付路径，失败意味着核心业务结果不可用。",
+      "weight": 0.1
+    },
+    "test_outputs.py::test_config_extra_field_is_rejected": {
+      "priority": "boundary",
+      "rationale": "config extra field is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_consumable_summary_fields_and_order": {
+      "priority": "schema",
+      "rationale": "test consumable summary fields and order；这验证结构、类型或序列化外观，失败会使下游无法稳定消费结果。",
+      "weight": 0.012
+    },
+    "test_outputs.py::test_duplicate_config_key_is_rejected": {
+      "priority": "boundary",
+      "rationale": "duplicate config key is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_each_job_has_exactly_one_supply_option_family": {
+      "priority": "supporting",
+      "rationale": "test each job has exactly one supply option family；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.008
+    },
+    "test_outputs.py::test_empty_job_table_is_rejected": {
+      "priority": "boundary",
+      "rationale": "empty job table is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_extra_database_table_is_rejected": {
+      "priority": "boundary",
+      "rationale": "extra database table is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_incomplete_setup_matrix_is_rejected": {
+      "priority": "boundary",
+      "rationale": "incomplete setup matrix is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_input_database_is_unchanged": {
+      "priority": "supporting",
+      "rationale": "input database is unchanged；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    },
+    "test_outputs.py::test_job_choices_have_exact_fields_and_order": {
+      "priority": "schema",
+      "rationale": "test job choices have exact fields and order；这验证结构、类型或序列化外观，失败会使下游无法稳定消费结果。",
+      "weight": 0.012
+    },
+    "test_outputs.py::test_job_count_above_limit_is_rejected": {
+      "priority": "boundary",
+      "rationale": "job count above limit is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_job_due_before_ready_is_rejected": {
+      "priority": "boundary",
+      "rationale": "job due before ready is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_job_family_enum_is_enforced": {
+      "priority": "supporting",
+      "rationale": "job family enum is enforced；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    },
+    "test_outputs.py::test_job_shift_membership_must_cover_every_job": {
+      "priority": "supporting",
+      "rationale": "test job shift membership must cover every job；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    },
+    "test_outputs.py::test_machine_state_reports_restored_event_identity": {
+      "priority": "supporting",
+      "rationale": "machine state reports restored event identity；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    },
+    "test_outputs.py::test_maintenance_before_available_is_rejected": {
+      "priority": "boundary",
+      "rationale": "maintenance before available is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_maintenance_event_end_before_begin_is_rejected": {
+      "priority": "boundary",
+      "rationale": "maintenance event end before begin is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_maintenance_event_id_syntax_is_rejected": {
+      "priority": "boundary",
+      "rationale": "maintenance event id syntax is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_max_jobs_above_global_limit_is_rejected": {
+      "priority": "boundary",
+      "rationale": "max jobs above global limit is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_more_than_four_energy_candidates_are_rejected": {
+      "priority": "boundary",
+      "rationale": "more than four energy candidates are rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_nine_jobs_finish_within_public_limit": {
+      "priority": "boundary",
+      "rationale": "nine jobs finish within public limit；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_objective_has_exact_keys": {
+      "priority": "schema",
+      "rationale": "test objective has exact keys；这验证结构、类型或序列化外观，失败会使下游无法稳定消费结果。",
+      "weight": 0.012
+    },
+    "test_outputs.py::test_output_directory_failure_preserves_old_files": {
+      "priority": "core",
+      "rationale": "output directory failure preserves old files；这是任务的主交付路径，失败意味着核心业务结果不可用。",
+      "weight": 0.1
+    },
+    "test_outputs.py::test_outputs_are_canonical_json": {
+      "priority": "supporting",
+      "rationale": "outputs are canonical json；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    },
+    "test_outputs.py::test_predecessor_cycle_is_rejected": {
+      "priority": "boundary",
+      "rationale": "predecessor cycle is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_predecessor_missing_reference_is_rejected": {
+      "priority": "boundary",
+      "rationale": "predecessor missing reference is rejected；这验证公开边界和拒收口径，失败会产生越界输入或错误放行。",
+      "weight": 0.015
+    },
+    "test_outputs.py::test_recovered_event_begin_limits_job_completion": {
+      "priority": "core",
+      "rationale": "recovered event begin limits job completion；这是任务的主交付路径，失败意味着核心业务结果不可用。",
+      "weight": 0.1
+    },
+    "test_outputs.py::test_repeat_run_is_byte_stable": {
+      "priority": "recovery",
+      "rationale": "repeat run is byte stable；这验证失败、重跑或恢复不变量，失败会造成旧数据和台账不一致。",
+      "weight": 0.02
+    },
+    "test_outputs.py::test_selected_maintenance_events_are_distinct": {
+      "priority": "supporting",
+      "rationale": "selected maintenance events are distinct；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    },
+    "test_outputs.py::test_shared_consumable_capacity_binds_both_shift_groups": {
+      "priority": "core",
+      "rationale": "test shared consumable capacity binds both shift groups；这是任务的主交付路径，失败意味着核心业务结果不可用。",
+      "weight": 0.1
+    },
+    "test_outputs.py::test_shared_consumable_is_allocated_across_shift_groups": {
+      "priority": "core",
+      "rationale": "test shared consumable is allocated across shift groups；这是任务的主交付路径，失败意味着核心业务结果不可用。",
+      "weight": 0.1
+    },
+    "test_outputs.py::test_shared_resource_container_has_exact_keys": {
+      "priority": "schema",
+      "rationale": "test shared resource container has exact keys；这验证结构、类型或序列化外观，失败会使下游无法稳定消费结果。",
+      "weight": 0.012
+    },
+    "test_outputs.py::test_shift_summary_fields_and_order": {
+      "priority": "schema",
+      "rationale": "test shift summary fields and order；这验证结构、类型或序列化外观，失败会使下游无法稳定消费结果。",
+      "weight": 0.012
+    },
+    "test_outputs.py::test_shift_window_count_is_exactly_two": {
+      "priority": "supporting",
+      "rationale": "test shift window count is exactly two；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    },
+    "test_outputs.py::test_shift_window_rejects_cross_shift_overflow": {
+      "priority": "core",
+      "rationale": "test shift window rejects cross shift overflow；这是任务的主交付路径，失败意味着核心业务结果不可用。",
+      "weight": 0.1
+    },
+    "test_outputs.py::test_shift_windows_must_not_overlap": {
+      "priority": "supporting",
+      "rationale": "test shift windows must not overlap；这补充验证外围业务约束，失败会降低交付完整性和可运维性。",
+      "weight": 0.009
+    }
+  },
+  "weight_policy": {
+    "basis": "business_priority",
+    "core_min_share": 0.5,
+    "version": 1
+  }
+}

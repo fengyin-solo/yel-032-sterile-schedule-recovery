@@ -18,16 +18,29 @@ SOURCE_ROOT = Path(os.environ.get("AUTOCLAVE_DATA", "/data"))
 RESULT_CACHE = {}
 
 
+def expose_candidate_path(path):
+    if Path("/tmp") not in path.parents:
+        return
+    for ancestor in path.parents:
+        if ancestor == Path("/tmp"):
+            break
+        ancestor.chmod(0o755)
+    path.chmod(0o777)
+
+
 @pytest.fixture
 def root(tmp_path):
     destination = tmp_path / "data"
     shutil.copytree(SOURCE_ROOT, destination, symlinks=True)
-    tmp_path.chmod(0o755)
+    expose_candidate_path(tmp_path)
     destination.chmod(0o777)
     for path in destination.rglob("*"):
         if path.is_symlink():
             continue
         path.chmod(0o777 if path.is_dir() else 0o644)
+    lock_path = destination / ".sterilization.lock"
+    if lock_path.is_file() and not lock_path.is_symlink():
+        lock_path.chmod(0o666)
     return destination
 
 
@@ -799,9 +812,12 @@ def test_nine_jobs_finish_within_public_limit(tmp_path):
     """题面：「`max_jobs` 接受 1 到 9 的整数。」与「一次排程必须在 20 秒内完成。」"""
     root = tmp_path / "large-plan"
     shutil.copytree(SOURCE_ROOT, root, symlinks=True)
-    tmp_path.chmod(0o755)
+    expose_candidate_path(tmp_path)
     root.chmod(0o777)
     (root / "output").chmod(0o777)
+    lock_path = root / ".sterilization.lock"
+    if lock_path.is_file() and not lock_path.is_symlink():
+        lock_path.chmod(0o666)
     (root / "config.json").write_text(
         json.dumps(
             {
